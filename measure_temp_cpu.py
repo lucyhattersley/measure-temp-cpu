@@ -23,14 +23,16 @@ start_time = time.time()  # remember when we started
 results = [] # list of temperature readings
 
 try:
-    subprocess.check_call(['glxgears', '-fullscreen'],
+    subprocess.check_call(['glxgears'], #removed '-fullscreen' for debug
                         timeout=stress_time)
     subprocess.check_call(['stress-ng', '--cpu' , '0', '--cpu-method', 'fft'],
                         timeout=stress_time)
 
+    # This bit isn't writing data. Probably because of the running subprocess
     current_temp = measure_temp()
     current_cpu = measure_cpu()
     results.append([current_temp, current_cpu])
+    print(results)
     time.sleep(1)
 
 except subprocess.TimeoutExpired: 
@@ -38,6 +40,7 @@ except subprocess.TimeoutExpired:
 else:
     print('subprocess has exited before timeout')
 
+print(results)
 while (time.time() - start_time) < cooldown_time:
     current_temp = measure_temp()
     current_cpu = measure_cpu()
