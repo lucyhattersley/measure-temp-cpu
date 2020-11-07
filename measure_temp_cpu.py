@@ -2,6 +2,7 @@ import os
 import time
 import csv
 import re
+import subprocess
 
 def measure_temp():
     temp = os.popen("vcgencmd measure_temp").readline()
@@ -15,20 +16,37 @@ def measure_cpu():
     cpu_speed_int = int(cpu_speed_strip)
     return(cpu_speed_int)
 
-run_time = 3 # run for x seconds
+stress_time = 10 #run stress for x seconds
+cooldown_time = stress_time + 5 # run cooldown for x seconds
 start_time = time.time()  # remember when we started
 
-data = [] # list of temperature readings
+results = [] # list of temperature readings
 
-while (time.time() - start_time) < run_time:
+try:
+    subprocess.check_call(['glxgears', '-fullscreen'],
+                        timeout=stress_time)
+    subprocess.check_call(['stress-ng', '--cpu' , '0', '--cpu-method', 'fft'],
+                        timeout=stress_time)
+
     current_temp = measure_temp()
     current_cpu = measure_cpu()
-    data.append([current_temp, current_cpu])
+    results.append([current_temp, current_cpu])
     time.sleep(1)
 
-print(data)
+except subprocess.TimeoutExpired: 
+    print('subprocess has been killed on timeout')
+else:
+    print('subprocess has exited before timeout')
+
+while (time.time() - start_time) < cooldown_time:
+    current_temp = measure_temp()
+    current_cpu = measure_cpu()
+    results.append([current_temp, current_cpu])
+    time.sleep(1)
+
+print(results)
 
 with open('temps.csv', 'w') as f:
      writer = csv.writer(f)
      writer.writerow(["Temp", "CPU"])
-     writer.writerows(data)
+     writer.writerows(results)
