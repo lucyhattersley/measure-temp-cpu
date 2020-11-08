@@ -16,39 +16,39 @@ def measure_cpu():
     cpu_speed_int = int(cpu_speed_strip)
     return(cpu_speed_int)
 
-stress_time = 10 #run stress for x seconds
-cooldown_time = stress_time + 5 # run cooldown for x seconds
-start_time = time.time()  # remember when we started
+stress_time = 600 #run stress for x seconds
+cooldown_time = stress_time + 300 # run cooldown for x seconds
 
 results = [] # list of temperature readings
 
-try:
-    subprocess.check_call(['glxgears'], #removed '-fullscreen' for debug
-                        timeout=stress_time)
-    subprocess.check_call(['stress-ng', '--cpu' , '0', '--cpu-method', 'fft'],
-                        timeout=stress_time)
+# Launch stress processes
+p1 = subprocess.Popen(['glxgears', '-fullscreen'])
+p2 = subprocess.Popen(['stress-ng', '--cpu' , '0', '--cpu-method', 'fft']) 
 
-    # This bit isn't writing data. Probably because of the running subprocess
+start_time = time.time()  # remember when we started
+
+# Record temp / cpu during stress 
+while (time.time() - start_time) < stress_time:
     current_temp = measure_temp()
     current_cpu = measure_cpu()
     results.append([current_temp, current_cpu])
-    print(results)
     time.sleep(1)
 
-except subprocess.TimeoutExpired: 
-    print('subprocess has been killed on timeout')
-else:
-    print('subprocess has exited before timeout')
+#Kill stress processes
+p1.kill()
+p2.kill()
 
-print(results)
+# Record temp / cpu during cooldown
 while (time.time() - start_time) < cooldown_time:
     current_temp = measure_temp()
     current_cpu = measure_cpu()
     results.append([current_temp, current_cpu])
     time.sleep(1)
 
+# Results for debug
 print(results)
 
+# Write results to csv file
 with open('temps.csv', 'w') as f:
      writer = csv.writer(f)
      writer.writerow(["Temp", "CPU"])
